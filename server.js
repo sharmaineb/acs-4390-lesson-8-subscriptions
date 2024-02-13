@@ -1,7 +1,7 @@
 // import dependencies
 const { ApolloServer, gql, PubSub } = require('apollo-server');
 
-// handle events associated with subscriptions
+// subscriptions
 const pubsub = new PubSub();
 
 // schema
@@ -29,7 +29,7 @@ const typeDefs = gql`
 
 // mock data
 const data = [
-  { channel: 'general', message: 'hello world', date: new Date() }
+  { channel: 'general', message: 'hello world', date: new Date().toISOString() }
 ];
 
 // resolvers
@@ -40,9 +40,10 @@ const resolvers = {
   },
   Mutation: {
     addPost: (_, { channel, message }) => {
-      const post = { channel, message, date: new Date() };
+      const post = { channel, message, date: new Date().toISOString() };
       data.push(post);
-      pubsub.publish('NEW_POST', { newPost: post, channel });
+      pubsub.publish(`NEW_POST_${channel}`, { newPost: post });
+      console.log('New post added:', post); 
       return post;
     },
     addChannel: (_, { name }) => {
@@ -65,6 +66,10 @@ const resolvers = {
 const server = new ApolloServer({
   typeDefs,
   resolvers,
+  formatError: (error) => {
+    console.error(error); 
+    return error;
+  },
 });
 
 server.listen().then(({ url }) => {
@@ -72,36 +77,21 @@ server.listen().then(({ url }) => {
 });
 
 // example queries:
-// List Channels
-// query ListChannels {
-//   channels
-// }
-
-// Add Channel
-// mutation AddChannel {
-//   addChannel(name: "general")
-// }
-
-// Subscribe to New Channels
-// subscription SubscribeToNewChannels {
-//   newChannel
-// }
-
-// List Posts for a Channel
-// query ListPostsForChannel {
+// query {
 //   posts(channel: "general") {
 //     message
 //     date
 //   }
 // }
 
-// Add Post to a Channel
-// mutation AddPostToChannel {
-//   addPost(channel: "general", message: "Hello, world!")
+// mutation {
+//   addPost(channel: "general", message: "This is a new post!") {
+//     message
+//     date
+//   }
 // }
 
-// Subscribe to New Posts in a Channel
-// subscription SubscribeToNewPostsInChannel {
+// subscription {
 //   newPost(channel: "general") {
 //     message
 //     date
